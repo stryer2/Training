@@ -1,0 +1,146 @@
+{
+  "generated_at": "2026-05-21T13:44:07.543595",
+  "version": "3.112",
+  "script_hash": "a60c2ee19b34",
+  "scan_hours": 72,
+  "retention_days": 14,
+  "activities": [
+    {
+      "activity_id": "i150291374",
+      "date": "2026-05-21",
+      "type": "VirtualRide",
+      "name": "\uc2e4\ub0b4 \uc790\uc804\uac70\ud0c0\uae30",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 3309,
+          "avg_power": 85,
+          "max_power": 148,
+          "avg_hr": 126,
+          "max_hr": 143,
+          "avg_cadence": 70.44454,
+          "zone": 2,
+          "training_load": 36.46598,
+          "decoupling": -6.659521
+        }
+      ]
+    },
+    {
+      "activity_id": "i150160724",
+      "date": "2026-05-19",
+      "type": "VirtualRide",
+      "name": "Night Virtual Ride",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 2362,
+          "avg_power": 88,
+          "max_power": 141,
+          "avg_hr": 134,
+          "max_hr": 152,
+          "avg_cadence": 75.45089,
+          "zone": 2,
+          "training_load": 26.660133,
+          "decoupling": -3.4248464
+        }
+      ]
+    },
+    {
+      "activity_id": "i150160714",
+      "date": "2026-05-17",
+      "type": "Ride",
+      "name": "Lunch Ride",
+      "interval_summary": [
+        "1x 29s 323w"
+      ],
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 267,
+          "avg_power": 38,
+          "max_power": 519,
+          "avg_hr": 127,
+          "max_hr": 161,
+          "avg_cadence": 50.126667,
+          "zone": 1,
+          "training_load": 1.7788137,
+          "decoupling": -262.8758
+        },
+        {
+          "type": "WORK",
+          "label": "29s@323w72rpm",
+          "duration_secs": 29,
+          "avg_power": 323,
+          "max_power": 387,
+          "avg_hr": 166,
+          "max_hr": 178,
+          "avg_cadence": 72.27586,
+          "zone": 7,
+          "training_load": 2.1875124,
+          "decoupling": 6.261312
+        },
+        {
+          "type": "RECOVERY",
+          "duration_secs": 99,
+          "avg_power": 86,
+          "max_power": 380,
+          "avg_hr": 178,
+          "max_hr": 185,
+          "avg_cadence": 43.878788,
+          "zone": 2,
+          "training_load": 5.029166,
+          "decoupling": 57.36062
+        }
+      ]
+    },
+    {
+      "activity_id": "i150160692",
+      "date": "2026-05-17",
+      "type": "Ride",
+      "name": "Morning Ride",
+      "interval_summary": [
+        "1x 87s 139w"
+      ],
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 5449,
+          "avg_power": 67,
+          "max_power": 498,
+          "avg_hr": 136,
+          "max_hr": 171,
+          "avg_cadence": 82.59483,
+          "zone": 1,
+          "training_load": 53.437016,
+          "decoupling": -9.871591
+        },
+        {
+          "type": "WORK",
+          "label": "87s@139w78rpm",
+          "duration_secs": 87,
+          "avg_power": 139,
+          "max_power": 183,
+          "avg_hr": 151,
+          "max_hr": 161,
+          "avg_cadence": 77.60919,
+          "zone": 4,
+          "training_load": 2.1520367,
+          "decoupling": 3.2422202
+        },
+        {
+          "type": "RECOVERY",
+          "duration_secs": 10058,
+          "avg_power": 78,
+          "max_power": 365,
+          "avg_hr": 151,
+          "max_hr": 189,
+          "avg_cadence": 69.232635,
+          "zone": 1,
+          "training_load": 57.963165
+        }
+      ]
+    }
+  ]
+}
