@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-02T22:10:16.034502",
+  "generated_at": "2026-06-03T00:00:54.988892",
   "version": "3.112",
   "script_hash": "a60c2ee19b34",
   "scan_hours": 72,
@@ -23,27 +23,6 @@
           "zone": 2,
           "training_load": 36.46598,
           "decoupling": -6.659521
-        }
-      ]
-    },
-    {
-      "activity_id": "i150160724",
-      "date": "2026-05-19",
-      "type": "VirtualRide",
-      "name": "Night Virtual Ride",
-      "interval_summary": null,
-      "intervals": [
-        {
-          "type": "RECOVERY",
-          "duration_secs": 2362,
-          "avg_power": 88,
-          "max_power": 141,
-          "avg_hr": 134,
-          "max_hr": 152,
-          "avg_cadence": 75.45089,
-          "zone": 2,
-          "training_load": 26.660133,
-          "decoupling": -3.4248464
         }
       ]
     },
