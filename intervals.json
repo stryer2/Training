@@ -1,55 +1,85 @@
 {
-  "generated_at": "2026-07-15T00:02:55.979936",
-  "version": "3.112",
-  "script_hash": "a60c2ee19b34",
+  "generated_at": "2026-07-15T03:06:25.746322",
+  "version": "3.118",
+  "script_hash": "280ec05bd6dc",
   "scan_hours": 72,
   "retention_days": 14,
   "activities": [
     {
-      "activity_id": "i163511411",
-      "date": "2026-07-07",
+      "activity_id": "i165252161",
+      "date": "2026-07-13",
+      "start_datetime": "2026-07-13T20:09:39",
       "type": "VirtualRide",
       "name": "\uc2e4\ub0b4 \uc790\uc804\uac70\ud0c0\uae30",
       "interval_summary": null,
       "intervals": [
         {
           "type": "RECOVERY",
-          "duration_secs": 2544,
-          "avg_power": 98,
-          "max_power": 169,
-          "avg_hr": 127,
-          "max_hr": 144,
-          "avg_cadence": 69.491745,
+          "duration_secs": 2470,
+          "avg_power": 99,
+          "max_power": 177,
+          "avg_hr": 130,
+          "max_hr": 156,
+          "avg_cadence": 82.23077,
           "zone": 2,
-          "training_load": 30.757885,
-          "decoupling": 0.6907725
+          "training_load": 28.585287,
+          "decoupling": 7.6729894
         }
       ]
     },
     {
-      "activity_id": "i164159591",
-      "date": "2026-07-09",
-      "type": "VirtualRide",
-      "name": "\uc2e4\ub0b4 \uc790\uc804\uac70\ud0c0\uae30",
-      "interval_summary": null,
+      "activity_id": "i164917019",
+      "date": "2026-07-12",
+      "start_datetime": "2026-07-12T15:42:10",
+      "type": "Ride",
+      "name": "\ub3c4\ub85c \uc0ac\uc774\ud074\ub9c1",
+      "interval_summary": [
+        "1x 96s 169w"
+      ],
       "intervals": [
         {
           "type": "RECOVERY",
-          "duration_secs": 3497,
-          "avg_power": 102,
-          "max_power": 165,
-          "avg_hr": 129,
-          "max_hr": 144,
-          "avg_cadence": 78.96997,
+          "duration_secs": 1311,
+          "avg_power": 92,
+          "max_power": 238,
+          "avg_hr": 147,
+          "max_hr": 170,
+          "avg_cadence": 82.483765,
           "zone": 2,
-          "training_load": 43.123455,
-          "decoupling": -1.8962156
+          "training_load": 17.112165,
+          "decoupling": 8.271203
+        },
+        {
+          "type": "WORK",
+          "label": "96s@169w92rpm",
+          "duration_secs": 96,
+          "avg_power": 169,
+          "max_power": 199,
+          "avg_hr": 167,
+          "max_hr": 178,
+          "avg_cadence": 91.760414,
+          "zone": 5,
+          "training_load": 2.9471838,
+          "decoupling": 9.352295
+        },
+        {
+          "type": "RECOVERY",
+          "duration_secs": 536,
+          "avg_power": 56,
+          "max_power": 299,
+          "avg_hr": 148,
+          "max_hr": 182,
+          "avg_cadence": 62.472157,
+          "zone": 1,
+          "training_load": 6.8211703,
+          "decoupling": 39.344807
         }
       ]
     },
     {
       "activity_id": "i164600963",
       "date": "2026-07-11",
+      "start_datetime": "2026-07-11T08:25:36",
       "type": "Ride",
       "name": "\ub3c4\ub85c \uc0ac\uc774\ud074\ub9c1",
       "interval_summary": [
@@ -148,71 +178,46 @@
       ]
     },
     {
-      "activity_id": "i164917019",
-      "date": "2026-07-12",
-      "type": "Ride",
-      "name": "\ub3c4\ub85c \uc0ac\uc774\ud074\ub9c1",
-      "interval_summary": [
-        "1x 96s 169w"
-      ],
-      "intervals": [
-        {
-          "type": "RECOVERY",
-          "duration_secs": 1311,
-          "avg_power": 92,
-          "max_power": 238,
-          "avg_hr": 147,
-          "max_hr": 170,
-          "avg_cadence": 82.483765,
-          "zone": 2,
-          "training_load": 17.112165,
-          "decoupling": 8.271203
-        },
-        {
-          "type": "WORK",
-          "label": "96s@169w92rpm",
-          "duration_secs": 96,
-          "avg_power": 169,
-          "max_power": 199,
-          "avg_hr": 167,
-          "max_hr": 178,
-          "avg_cadence": 91.760414,
-          "zone": 5,
-          "training_load": 2.9471838,
-          "decoupling": 9.352295
-        },
-        {
-          "type": "RECOVERY",
-          "duration_secs": 536,
-          "avg_power": 56,
-          "max_power": 299,
-          "avg_hr": 148,
-          "max_hr": 182,
-          "avg_cadence": 62.472157,
-          "zone": 1,
-          "training_load": 6.8211703,
-          "decoupling": 39.344807
-        }
-      ]
-    },
-    {
-      "activity_id": "i165252161",
-      "date": "2026-07-13",
+      "activity_id": "i164159591",
+      "date": "2026-07-09",
+      "start_datetime": "2026-07-09T19:55:31",
       "type": "VirtualRide",
       "name": "\uc2e4\ub0b4 \uc790\uc804\uac70\ud0c0\uae30",
       "interval_summary": null,
       "intervals": [
         {
           "type": "RECOVERY",
-          "duration_secs": 2470,
-          "avg_power": 99,
-          "max_power": 177,
-          "avg_hr": 130,
-          "max_hr": 156,
-          "avg_cadence": 82.23077,
+          "duration_secs": 3497,
+          "avg_power": 102,
+          "max_power": 165,
+          "avg_hr": 129,
+          "max_hr": 144,
+          "avg_cadence": 78.96997,
           "zone": 2,
-          "training_load": 28.585287,
-          "decoupling": 7.6729894
+          "training_load": 43.123455,
+          "decoupling": -1.8962156
+        }
+      ]
+    },
+    {
+      "activity_id": "i163511411",
+      "date": "2026-07-07",
+      "start_datetime": "2026-07-07T20:23:01",
+      "type": "VirtualRide",
+      "name": "\uc2e4\ub0b4 \uc790\uc804\uac70\ud0c0\uae30",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 2544,
+          "avg_power": 98,
+          "max_power": 169,
+          "avg_hr": 127,
+          "max_hr": 144,
+          "avg_cadence": 69.491745,
+          "zone": 2,
+          "training_load": 30.757885,
+          "decoupling": 0.6907725
         }
       ]
     }
