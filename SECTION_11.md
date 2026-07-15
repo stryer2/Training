@@ -1,10 +1,17 @@
 # Section 11 — AI Coach Protocol
 
-**Protocol Version:** 11.49  
-**Last Updated:** 2026-07-08
+**Protocol Version:** 11.50
+**Last Updated:** 2026-07-15
 **License:** [MIT](https://opensource.org/licenses/MIT)
 
 ### Changelog
+
+**v11.50 — Intervals.icu-aligned ACWR + advisory-only readiness role:**
+- Pairs with `sync.py` v3.118, applied on top of the upstream v3.117 release so the v3.113–v3.117 DFA and readiness fixes remain intact
+- ACWR now mirrors Intervals.icu as `ATL / CTL`, using the platform-provided exponentially weighted fatigue and fitness values (default time constants: 7d ATL / 42d CTL). Historical weekly rows use week-end `atl_end / ctl_end`; the prior mixed 7d/28d current calculation and uncoupled 1-week/previous-3-week historical calculation are retired
+- ACWR is descriptive relative-load context, not a stand-alone injury predictor or safety gate. It remains visible in derived metrics, weekly reports, phase context, and informational tier-2 alerts, but is excluded from readiness green/amber/red counts and cannot independently trigger Go → Modify/Skip, cap intensity/volume, block testing, or reject progression
+- Direct ACWR P1 branches (≥1.3 Modify, ≥1.5 Skip), the ACWR-driven Z2 cap, and ACWR-only safe-range language are removed. Independent recovery/fatigue evidence (RI, HRV/RHR, sleep, TSB, Feel/RPE) remains authoritative; ACWR may only corroborate a multi-signal interpretation
+- `derived_metrics.acwr_method` emits `"intervals_atl_ctl"`; `acwr_interpretation` uses neutral relative-load labels. `readiness_decision.signals.acwr.status` is `"context"` when available, and `signal_summary.context` reports the excluded advisory count
 
 **v11.49 — P1 `alarm_refs` per-branch attribution (`sync.py` v3.117, changelog-only):**
 - `sync.py` v3.117: the P1 skip return previously set `alarm_refs` to every `tier1_persistent` ref whenever any P1 reason fired. When P1 fired from ACWR (≥ 1.5) or the TSB+HRV composite while RI ≥ 0.7 (persistent branch inactive) and unrelated persistent tier-1 alerts happened to be active, `alarm_refs` named alerts that did not trigger the decision. Now built per firing branch: ACWR contributes the `acwr` alert ref (present only if the object exists — guaranteed at ≥ 1.5, above the ≥ 1.35 alert threshold), the TSB+HRV composite contributes none (no discrete alert object to resolve to), the RI < 0.7 persistent branch contributes its tier-1 metrics only when it fires
@@ -460,7 +467,7 @@ In addition to the real-time `latest.json` mirror, athletes may provide a `histo
 | `ctl_end` / `atl_end` / `tsb_end` | number/null | CTL, ATL, TSB at week end (from wellness) |
 | `z1_z2_pct` / `z3_pct` / `z4_plus_pct` | number/null | Zone distribution (% of total zone time) |
 | `hard_days` | number | Count of days classified as hard |
-| `acwr` | number/null | Acute:chronic workload ratio (null for first 3 weeks) |
+| `acwr` | number/null | Intervals.icu-aligned acute:chronic workload ratio: week-end `atl_end / ctl_end`; null only when CTL/ATL is unavailable or CTL ≤ 0 |
 | `phase_detected` | string/null | Phase label from `_detect_phase_v2` backfill (Build/Base/Peak/Taper/Deload/Recovery/Overreached/null) |
 | `durability_mean` | number/null | Mean cardiac decoupling (%) across qualifying sessions. Null when N=0. Gate: VI≤1.05, VI>0, mt≥5400, decoupling not None |
 | `durability_qualifying` | number | Count of sessions meeting the durability gate (always present, 0 if none) |
@@ -559,7 +566,7 @@ All AI analyses, interpretations, and recommendations must be grounded in valida
 |   Banister’s TRIMP Impulse–Response Model                   | Load quantification and performance adaptation tracking                                                                       |
 |   Foster’s Monotony & Strain Indices                        | Overuse detection and load variation optimization                                                                             |
 |   Issurin’s Block Periodization Model (2008)                | Structured progression using accumulation → realization → taper blocks                                                        |
-|   Gabbett’s Acute:Chronic Workload Ratio (2016)             | Load progression and injury-risk management (optimal ACWR 0.8–1.3)                                                            |
+|   Acute:Chronic Workload Ratio (historical Gabbett framework; Intervals.icu implementation) | Descriptive recent-vs-chronic load context (`ATL / CTL`); advisory only, not a stand-alone injury predictor or readiness gate |
 |   Péronnet & Thibault Endurance Modeling                    | Long-term power–duration curve development                                                                                    |
 |   Cunningham & Faulkner Durability Metrics                  | Resistance to fatigue and drift thresholds                                                                                    |
 |   Coggan’s Power–Duration and Efficiency Model              | Aerobic efficiency tracking, power curve modeling, and fatigue decay analysis                                                 |
@@ -586,7 +593,7 @@ Training follows the **URF v5.1 Rolling Phase Model**, which classifies weekly l
 - **Banister (1975):** Fitness–fatigue impulse–response system for CTL/ATL/TSB dynamics
 - **Seiler (2010, 2019):** Polarized intensity and adaptation rhythm
 - **Issurin (2008):** Block periodization (accumulation → realization → taper)
-- **Gabbett (2016):** Acute:Chronic workload ratio for safe progression
+- **ACWR context:** Intervals.icu `ATL / CTL` for descriptive recent-vs-chronic load balance; never a stand-alone safety or progression gate
 
 Each week's data (TSS, CTL, ATL, TSB, RI) is analyzed for trend and slope:
 
@@ -595,7 +602,7 @@ Each week's data (TSS, CTL, ATL, TSB, RI) is analyzed for trend and slope:
 | ΔTSS % (Ramp Rate)        | Week-to-week load change                 |
 | CTL / ATL Slope           | Long- and short-term stress trajectories |
 | TSB                       | Readiness and recovery balance           |
-| ACWR (0.8–1.3)            | Safe workload progression                |
+| ACWR (`ATL / CTL`)        | Advisory recent-vs-chronic load context  |
 | Recovery Index (RI ≥ 0.8) | Fatigue–recovery equilibrium             |
 
 This produces a rolling phase block structure that adapts dynamically, ensuring progression and recovery follow real-world readiness rather than fixed calendar blocks.
@@ -615,18 +622,18 @@ Phase detection uses a **dual-stream architecture** combining retrospective trai
 
 | **Phase** | **Classification Logic** | **Key Thresholds** |
 |-----------|------------------------|--------------------|
-| Overreached | Safety gate — triggers immediately when detected | Current-week ACWR ≥1.5, or elevated monotony (>2.5) + ACWR ≥1.3 + rising trend |
+| Overreached | Convergent-load safety context — no ACWR-only trigger | Elevated monotony (>2.5) corroborated by current ACWR ≥1.5, or elevated monotony + ACWR ≥1.3 with a rising trend |
 | Taper | Race-anchored — requires race in calendar | Race (A/B priority) within 14 days + volume reducing (planned TSS ≤80% of recent avg) |
 | Peak | Race approaching, fitness at cycle high | Race within 21 days + CTL within 5% of lookback max + volume NOT yet reducing + positive CTL slope |
 | Deload | Calendar-driven load reduction within Build block | Build history (rising CTL + ≥1.5 hard days/week over 3+ weeks) + planned TSS ≤80% + no hard sessions planned. Confirmed if next week load resumes (≥80%). Medium confidence if next-week plan is empty. |
-| Build | Scored — CTL rising + sustained hard days | CTL slope >1.0, hard-day avg ≥1.5, ACWR rising/stable. Planned week continues pattern (hard sessions ≥2). |
-| Base | Scored — CTL stable + low hard days | CTL slope −1.0 to +1.0, hard-day avg ≤1.5, ACWR stable. |
+| Build | Scored — CTL rising + sustained hard days | CTL slope >1.0, hard-day avg ≥1.5; ACWR trend may add advisory support. Planned week continues pattern (hard sessions ≥2). |
+| Base | Scored — CTL stable + low hard days | CTL slope −1.0 to +1.0, hard-day avg ≤1.5; ACWR trend may add advisory support. |
 | Recovery | Residual — declining load, no structured pattern | Declining CTL + <0.5 hard days/week + no Build history + no race proximity |
 | null | Insufficient or conflicting data | <3 weeks lookback, Build/Base scores tied, streams conflict |
 
 **Classification Priority Order:** Overreached → Taper → Peak → Deload → Build/Base (scored) → Recovery → null.
 
-**Build/Base Scoring:** When neither safety gates nor calendar-anchored phases apply, Build and Base are scored from CTL slope, hard-day density, ACWR trend, and planned session intensity. The phase with a margin ≥2 wins. Margins <2 apply hysteresis (bias toward previous phase). Tied scores with no previous phase → null.
+**Build/Base Scoring:** When neither safety gates nor calendar-anchored phases apply, Build and Base are scored primarily from CTL slope, hard-day density, and planned session intensity. ACWR trend may contribute one contextual point but cannot determine the phase or a readiness decision by itself. The phase with a margin ≥2 wins. Margins <2 apply hysteresis (bias toward previous phase). Tied scores with no previous phase → null.
 
 **Confidence Model:**
 
@@ -1007,7 +1014,7 @@ When validating datasets, cross-check computed fatigue and load ratios against v
 
 | **Metric**                   | **Valid Range**                                    | **Flag (Early Warning)**           | **Alarm (Action Needed)**           | **Notes**                                                           |
 |------------------------------|----------------------------------------------------|------------------------------------|-------------------------------------|---------------------------------------------------------------------|
-| ACWR                         | 0.8–1.3                                            | ≥ 1.3 (edge of optimal)           | ≥ 1.35 (above optimal)             | High-side only for readiness/overload. Low-side (<0.8) is load-state context (undertraining/taper), surfaced via acwr_interpretation. Persistence: ≥ 1.3 for 3+ days → alarm |
+| ACWR (`ATL / CTL`)           | No validated Go/No range                           | —                                 | —                                   | Advisory context only. Descriptive bands: <0.8 recent load below chronic; 0.8–<1.3 near chronic; 1.3–<1.5 above chronic; ≥1.5 well above chronic. Never enters readiness counts or independently changes training. |
 | Monotony                     | < 2.5                                              | At 2.3                             | At 2.5                              | See Monotony Deload Context below                                   |
 | Strain                       | < 3500                                             | —                                  | > 3500                              | Cumulative stress                                                   |
 | Recovery Index (RI)          | ≥ 0.8 good / 0.6–0.79 moderate / < 0.6 deload      | < 0.7 for 2+ days                 | < 0.7 for 3+ days → deload review; < 0.6 → immediate deload | Readiness indicator. Single-day dips 0.6–0.79 are context, not amber. |
@@ -1096,8 +1103,8 @@ AI systems must only consider caloric-reduction or weight-optimization phases du
 | Priority | Condition | Result |
 |----------|-----------|--------|
 | **P0 — Safety stop** | RI < 0.6, OR any active **Alert Tier 1** item with `severity: "alarm"` | **Skip** (non-negotiable) |
-| **P1 — Acute overload** | ACWR ≥ 1.5, OR (TSB < -30 + HRV ↓>10%), OR (RI < 0.7 + any **Alert Tier 1** item of `warning`/`alarm` severity with `persistence_days` ≥ 2) | **Skip** |
-| **P1 — Acute overload (modify)** | ACWR ≥ 1.3, OR (TSB < -25 + HRV ↓>10%) | **Modify** |
+| **P1 — Acute overload** | (TSB < -30 + HRV ↓>10%), OR (RI < 0.7 + any **Alert Tier 1** item of `warning`/`alarm` severity with `persistence_days` ≥ 2) | **Skip** |
+| **P1 — Acute overload (modify)** | TSB < -25 + HRV ↓>10% | **Modify** |
 | **P2 — Accumulated fatigue** | Red signal count ≥ 2, OR (1 red in tightened phase), OR amber count ≥ phase threshold | **Modify** (or Skip if 2+ red) |
 | **P3 — Green light** | None of the above | **Go** |
 
@@ -1118,13 +1125,13 @@ AI systems must only consider caloric-reduction or weight-optimization phases du
 | RHR | At or below baseline | ↑ 3–4 bpm | ↑ ≥5 bpm |
 | Sleep | ≥ 7h | 5–7h | < 5h |
 | TSB | > phase threshold (default -15) | Between threshold and -30 | < -30 |
-| ACWR | < 1.3 | ≥ 1.3 and < 1.5 | ≥ 1.5 |
+| ACWR | `context` at every available value; excluded from counts | — | — |
 | RI | ≥ 0.7, or single-day 0.6–0.69 | < 0.7 for 2+ consecutive days | < 0.6 |
 
-Missing signals are classified as `unavailable` and excluded from amber/red counts.
+Missing signals are classified as `unavailable` and excluded from amber/red counts. ACWR is classified as `context`, also excluded from all readiness counts.
 
 **Heuristic notes (transparency):**
-- **Low-side ACWR is intentionally excluded from readiness ambers.** An ACWR < 0.8 indicates reduced recent load relative to chronic fitness (taper, detraining, or simply an off-rhythm week) — it is a load-state/context signal, not a fatigue or overload signal. Using it as a readiness penalty conflates "did little recently" with "can't handle much today," which are near-opposite states. Low-side context still surfaces via `derived_metrics.acwr_interpretation` ("undertraining") for the AI layer to read as context, but it no longer contributes to amber counts or overload alerts.
+- **All ACWR values are intentionally excluded from readiness ambers/reds.** ACWR describes the balance between recent exponentially weighted load (ATL) and chronic exponentially weighted load (CTL). A low value can reflect taper, travel, illness, or an off-rhythm week; a high value can reflect a planned block or a genuine spike. Neither establishes current physiological readiness. The value and neutral `acwr_interpretation` remain available for narrative context and multi-signal corroboration only.
 - **RI amber requires 2-day persistence** (`ri < 0.7` today AND yesterday) to filter single-night noise from a composite signal built on HRV and RHR. Single-day dips in the 0.6–0.7 band remain visible via the reported value but do not trigger an amber. Red (`ri < 0.6`) still fires on any single day — deload review is warranted regardless of persistence.
 
 **Feel/RPE Override:**
@@ -1159,7 +1166,7 @@ When recommendation is `modify`, the output includes trigger categories and adju
 | Sleep-only | preserve | reduce | — |
 | Autonomic (HRV/RHR/RI) | reduce | preserve | — |
 | TSB-only | preserve | reduce | — |
-| ACWR-driven | reduce | reduce | Z2 |
+| ACWR-only | preserve | preserve | — (context only; no automatic modification) |
 | Combined (2+) | reduce | reduce | — |
 
 **Race week interaction:** Readiness can escalate (Go → Modify → Skip) during race week but cannot loosen race protocol targets. When `race_week_defers: true`, modification guidance defers to the race-week protocol's day-by-day targets. The race protocol sets the ceiling; readiness can only push it down.
@@ -1201,7 +1208,7 @@ In addition to recovery-based deload conditions, AI systems must detect readines
 | Durability Index (DI) | ≥ 0.97 for ≥ 3 long rides (≥ 2 h)       |
 | HR Drift              | < 3% during aerobic durability sessions |
 | Recovery Index (RI)   | ≥ 0.85 (7-day rolling mean)             |
-| ACWR                  | Within 0.8–1.3                          |
+| ACWR                  | Reported for context; no pass/fail threshold |
 | Monotony              | < 2.5                                   |
 | Feel (if available)   | ≤ 3/5 (no systemic fatigue)             |
 
@@ -2065,7 +2072,7 @@ The AI must not suggest a formal test when any of the following apply:
 - Readiness decision is not `go`
 - Athlete is within an active recovery week (phase `Recovery` or active deload)
 - Illness within the past 14 days (`alerts` block or athlete-reported)
-- ACWR outside safe band (<0.8 or ≥1.3)
+- ACWR is never a testing veto by itself; mention unusually low/high ATL-to-CTL balance only as context
 - RI persistent amber across the trailing 2 days
 - Phase is `Peak` or `Taper` — testing disrupts the taper response
 - Race-Week Protocol active (D-7 to D-0, see v11.6) — testing is categorically off-limits during race week
@@ -2134,7 +2141,7 @@ Values:
 - A single `positive` or `negative` reading is an observation to surface, not a trigger. Cross-reference Environmental Conditions Protocol (heat tier, altitude), recent sleep, and position in the training block before assigning meaning
 - A repeated `negative` pattern across consecutive sessions — especially at stable or rising IF — is a stronger under-recovery signal and should inform the Interpretation section of the report and any conversation about near-term load
 - `positive` readings during Race-Week Protocol or directly after a deload are expected; during build weeks they are a fitness tell worth naming
-- The field does NOT modify the readiness P0–P3 decision. That ladder uses its existing six signals only
+- The field does NOT modify the readiness P0–P3 decision. That ladder counts five readiness signals (HRV, RHR, sleep, TSB, RI); ACWR is carried separately as advisory context
 
 Report rendering: the post-workout report template emits `Effort response: [value]` on the per-session block, paired with a newly-rendered `IF: [X.XX]` line so the signal is verifiable at a glance. Null cases omit the line per the same convention used for Feel, RPE, and HRRc.
 
@@ -2144,7 +2151,7 @@ Testing Protocol constraints are absolute:
 
 1. **Does NOT mandate testing.** The AI suggests; the athlete decides. An athlete who never formally tests but has continuous data coverage remains correctly served.
 2. **Does NOT auto-update dossier zones.** A completed test produces a result; the athlete decides whether to update dossier thresholds. The AI surfaces the number and the delta from current dossier, nothing more.
-3. **Does NOT enter the readiness P0–P3 ladder.** A suggested-or-scheduled test does not modify the readiness decision. The readiness decision uses its existing 6 signals only.
+3. **Does NOT enter the readiness P0–P3 ladder.** A suggested-or-scheduled test does not modify the readiness decision. The decision counts HRV, RHR, sleep, TSB, and RI; ACWR remains advisory context only.
 4. **Does NOT override continuous data.** When continuous signals and a recent test disagree, investigate first (pacing? environment? fueling?). A single test is one data point; the continuous picture accumulates many.
 5. **Does NOT prescribe running or SkiErg tests.** Running equivalents deferred. SkiErg and rowing tests out of current scope.
 
@@ -2158,7 +2165,7 @@ Testing Protocol constraints are absolute:
 
 - Each progression must include an explicit “trigger met” reference in AI or coaching logs (e.g., RI ≥ 0.85, DI ≥ 0.97) to preserve deterministic audit traceability.
 - Power increases should not exceed +3 % per week (≤ +5 W typical); duration extensions may reach 5–10 % when within readiness thresholds  
-- Progression logic must remain within validated fatigue safety ranges (ACWR ≤ 1.3, Monotony < 2.5)  
+- Progression logic must keep Monotony < 2.5 and confirm RI/TSB/HRV stability; ACWR is advisory context and has no independent pass/fail threshold
 - When any progression variable changes, 7-day RI and TSB must remain within recovery-safe bands before further load increases  
 
 ---
@@ -2169,7 +2176,7 @@ When sufficient raw data is available, the AI may compute **secondary endurance 
 These calculations must only occur with **explicit athlete-provided inputs** — not inferred or modeled values.  
 Before interpretation, the AI must clearly state each metric’s **purpose**, **formula**, and **validation range**.
 
-If metrics such as **ACWR**, **Strain**, **Monotony**, **FIR**, or **Polarization Ratio** exceed validated thresholds, the AI must flag potential overreaching or under-recovery **before** prescribing further load increases.  
+If **Strain**, **Monotony**, **FIR**, or **Polarization Ratio** exceed validated thresholds, the AI must flag potential overreaching or under-recovery **before** prescribing further load increases. ACWR may be mentioned as corroborating relative-load context but must never create the flag by itself.
 Any training modification requires reconfirming **HRV**, **RHR**, and **subjective recovery status**.
 
 ---
@@ -2912,7 +2919,7 @@ Define deterministic, phase-aligned rules for AI or automated systems that gener
 
 ### 1 — Phase Alignment
 Identify the current macro-phase (**Base → Build → Peak → Taper → Recovery**) using:
-- **TSB trend**, **RI trend**, and **ACWR range (0.8 – 1.3)**  
+- **TSB trend** and **RI trend**, with ACWR trend retained only as advisory load context
 - Active-phase objectives defined in *Section 3 — Training Schedule & Framework*  
 
 Generated plans must explicitly state the detected phase in their audit header.
@@ -2982,7 +2989,7 @@ This header documents provenance, deterministic context, and planning logic for 
 Plans breaching tolerance limits must not publish until validated.
 
 AI systems must output an explicit reason string for rejections, e.g.:
-"error": "ACWR ≥ 1.35 — exceeds safe progression threshold"
+"error": "RI < 0.7 persisted with suppressed HRV — recovery evidence does not support progression"
 
 Human-review override requires athlete confirmation and metadata flag "override": true.
 
@@ -3032,7 +3039,7 @@ This subsection defines the formal self-validation and audit metadata structure 
     "timestamp_valid": true,
     "confidence": "high",
     "missing_inputs": [],
-    "frameworks_cited": ["Seiler 80/20", "Gabbett ACWR"],
+    "frameworks_cited": ["Seiler 80/20", "Intervals.icu ATL/CTL load context"],
     "recommendation_count": 3,
     "phase_detected": "Build",
     "phase_triggers": [],
@@ -3126,11 +3133,14 @@ This subsection defines the formal self-validation and audit metadata structure 
 | `phase_detection.phase_duration_weeks` | number | Consecutive weeks classified as current phase.                                 |
 | `phase_detection.dossier_declared` | string/null | Phase declared in athlete dossier (optional input).                            |
 | `phase_detection.dossier_agreement` | boolean/null | Whether detected phase matches dossier declaration.                           |
+| `derived_metrics.acwr`         | number/null | Intervals.icu-aligned `ATL / CTL`, rounded to 2 decimals. Uses platform-provided exponentially weighted fatigue/fitness values; descriptive context only. |
+| `derived_metrics.acwr_method`  | string   | `"intervals_atl_ctl"`. Explicit provenance tag preventing consumers from assuming a rolling 7d/28d calculation. |
+| `derived_metrics.acwr_interpretation` | string/null | Neutral label: `recent_load_below_chronic`, `recent_load_near_chronic`, `recent_load_above_chronic`, or `recent_load_well_above_chronic`. No injury-risk semantics. |
 | `readiness_decision`           | object   | Pre-computed go/modify/skip decision (v3.72+). Top-level, alongside `alerts`. |
 | `readiness_decision.recommendation` | string | "go" / "modify" / "skip" — baseline recommendation for pre-workout reports. |
 | `readiness_decision.priority`  | number   | 0 (safety stop), 1 (acute overload), 2 (accumulated fatigue), 3 (green light). |
-| `readiness_decision.signals`   | object   | Per-signal status objects (hrv, rhr, sleep, tsb, acwr, ri). Each has `status` (green/amber/red/unavailable) and raw values with deltas. |
-| `readiness_decision.signal_summary` | object | Pre-counted tallies: `green`, `amber`, `red`, `unavailable`. |
+| `readiness_decision.signals`   | object   | Per-signal status objects (hrv, rhr, sleep, tsb, acwr, ri). Readiness signals use `green`/`amber`/`red`/`unavailable`; available ACWR uses `context` with `role: "advisory"` and is excluded from counts. |
+| `readiness_decision.signal_summary` | object | Pre-counted tallies: `green`, `amber`, `red`, `unavailable`, `context`. The context count is excluded from decision thresholds. |
 | `readiness_decision.phase_context` | object | `phase`, `phase_week`, `amber_threshold`, `modifier_applied` — shows which phase rule shifted thresholds. |
 | `readiness_decision.race_week_defers` | boolean | When true, modification guidance defers to race-week protocol day-by-day targets. |
 | `readiness_decision.modification` | object/null | When recommendation is "modify": `triggers` (signal names), `suggested_adjustments` (`intensity`, `volume`, `cap_zone`). Null for "go" and "skip". |
@@ -3139,7 +3149,7 @@ This subsection defines the formal self-validation and audit metadata structure 
 | `alerts`                       | array    | Top-level array of currently-active alert objects emitted by `sync.py`. `readiness_decision.alarm_refs` references these by `metric`. See *Alert Tiers* under Readiness Decision. |
 | `alerts[].metric`              | string   | Signal name, e.g. `hrv`, `rhr`, `recovery_index`, `acwr`, `monotony`, `strain`, `durability`, `tid_distribution`, `race_taper`, `race_week`, `race_week_tsb`. |
 | `alerts[].value`               | number/string | Raw metric value at evaluation — numeric for most signals; a classification label (string) for `tid_distribution` shift alerts. |
-| `alerts[].severity`            | string   | `"info"` / `"warning"` / `"alarm"`. At `tier: 1`: `"alarm"` triggers a P0 skip; `"warning"`/`"alarm"` with `persistence_days` ≥ 2 is eligible for the alert-based P1 branch when RI < 0.7; `"info"` never forces a skip. |
+| `alerts[].severity`            | string   | `"info"` / `"warning"` / `"alarm"`. At `tier: 1`: `"alarm"` triggers a P0 skip; `"warning"`/`"alarm"` with `persistence_days` ≥ 2 is eligible for the alert-based P1 branch when RI < 0.7; `"info"` never forces a skip. ACWR alerts are always tier-2 `info`. |
 | `alerts[].tier`                | number   | `1` / `2` / `3`. Tier 1 = primary readiness signals + race-calendar; Tier 2 = load (`acwr` / `monotony` / `strain`); Tier 3 = quality (`durability` / `tid_distribution`). Only Alert Tier 1 is eligible for the alert-based P0/P1 branches. See *Alert Tiers*. |
 | `alerts[].persistence_days`    | number/null | Consecutive days the signal has held. Integer when persistence is computed; `null` for single-day/immediate alerts (e.g. the RI < 0.6 alarm) and alerts without a persistence axis, including race-calendar alerts. P1 persistent branch requires `≥ 2`, `warning`/`alarm` severity, and RI < 0.7. |
 | `alerts[].threshold`           | number/string | The threshold that was crossed — numeric for some branches (RI `0.6`/`0.7`, monotony/strain), a string for others (HRV/RHR/race/TID/durability). |
