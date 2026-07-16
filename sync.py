@@ -4,6 +4,13 @@ Intervals.icu → GitHub/Local JSON Export
 Exports training data for LLM access.
 Supports both automated GitHub sync and manual local export.
 
+Version 3.119 - Corroborative ACWR amber (2026-07-15): ACWR remains context when
+  it is the only adverse load signal. At ACWR >= 1.3 it becomes one P2 amber
+  vote only when at least one independent readiness signal is already amber or
+  red. ACWR never becomes red, never enters P0/P1, and can never independently
+  change go/modify/skip. Modification guidance ignores ACWR when choosing which
+  training dimension to reduce, so the independent trigger remains decisive.
+
 Version 3.118 - Intervals.icu-aligned ACWR advisory patch (2026-07-15): ACWR now
   mirrors the Intervals.icu chart definition (ATL / CTL) instead of recomputing
   a 7d/28d rolling ratio. Historical weekly rows use week-end ATL / CTL. ACWR
@@ -325,7 +332,7 @@ class IntervalsSync:
     HISTORY_FILE = "history.json"
     UPSTREAM_REPO = "CrankAddict/section-11"
     CHANGELOG_FILE = "changelog.json"
-    VERSION = "3.118"
+    VERSION = "3.119"
     INTERVALS_FILE = "intervals.json"
     ROUTES_FILE = "routes.json"
 
@@ -6533,8 +6540,9 @@ class IntervalsSync:
         else:
             signals["sleep"] = {"status": "unavailable", "hours": None, "quality": sleep_quality}
         
-        # ACWR context signal — deliberately excluded from green/amber/red
-        # readiness counts and from all direct go/modify/skip branches.
+        # ACWR starts as context. In P2 it may become one corroborative amber
+        # vote at >=1.3, but only after an independent signal is amber/red.
+        # It never becomes red and never enters a direct P0/P1 branch.
         if acwr is not None:
             signals["acwr"] = {
                 "status": "context",
@@ -6671,6 +6679,21 @@ class IntervalsSync:
                 signals["tsb"] = {"status": "green", "value": round(tsb, 1)}
         else:
             signals["tsb"] = {"status": "unavailable", "value": None}
+
+        # ACWR corroboration gate (v3.119): high ATL/CTL can strengthen an
+        # existing fatigue/recovery concern, but cannot create one by itself.
+        # Values >=1.5 stay amber rather than red because ACWR is not treated
+        # as a stand-alone safety or injury-risk threshold.
+        corroborating_signals = [
+            name for name, signal in signals.items()
+            if name != "acwr" and signal["status"] in ("amber", "red")
+        ]
+        if acwr is not None and acwr >= 1.3 and corroborating_signals:
+            signals["acwr"].update({
+                "status": "amber",
+                "role": "corroborative",
+                "corroborated_by": corroborating_signals
+            })
         
         # Recount after TSB added
         amber_count = sum(1 for s in signals.values() if s["status"] == "amber")
@@ -6774,16 +6797,23 @@ class IntervalsSync:
         if not triggers:
             return {"triggers": [], "suggested_adjustments": {"intensity": "preserve", "volume": "preserve", "cap_zone": None}}
         
-        # Determine adjustment directions based on trigger pattern
-        has_sleep = "sleep" in triggers
-        has_hrv = "hrv" in triggers
-        has_rhr = "rhr" in triggers
-        has_tsb = "tsb" in triggers
-        has_ri = "ri" in triggers
+        # ACWR may help cross a P2 count threshold, but it must not determine
+        # which training dimension is reduced. Base adjustment guidance only
+        # on the independent actionable triggers.
+        actionable_triggers = [t for t in triggers if t != "acwr"]
+        if not actionable_triggers:
+            return {"triggers": triggers, "suggested_adjustments": {"intensity": "preserve", "volume": "preserve", "cap_zone": None}}
+
+        # Determine adjustment directions based on actionable trigger pattern
+        has_sleep = "sleep" in actionable_triggers
+        has_hrv = "hrv" in actionable_triggers
+        has_rhr = "rhr" in actionable_triggers
+        has_tsb = "tsb" in actionable_triggers
+        has_ri = "ri" in actionable_triggers
         
         autonomic = has_hrv or has_rhr or has_ri
         load = has_tsb
-        multiple = len(triggers) >= 2
+        multiple = len(actionable_triggers) >= 2
         
         # Combined (2+ triggers): reduce both
         if multiple:
