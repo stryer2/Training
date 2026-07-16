@@ -1,10 +1,16 @@
 # Section 11 — AI Coach Protocol
 
-**Protocol Version:** 11.50
+**Protocol Version:** 11.51
 **Last Updated:** 2026-07-15
 **License:** [MIT](https://opensource.org/licenses/MIT)
 
 ### Changelog
+
+**v11.51 — Corroborative ACWR amber (`sync.py` v3.119):**
+- ACWR remains `context` when it is the only adverse load signal. At `ACWR >= 1.3`, it becomes one P2 `amber` vote only when at least one independent readiness signal (HRV, RHR, sleep, TSB, or RI) is already `amber` or `red`
+- ACWR never becomes `red`, including at values >=1.5; it cannot enter P0/P1, independently change Go/Modify/Skip, or independently stop training. A second independent signal is therefore always required before ACWR affects the count
+- When corroborative ACWR helps produce `Modify`, it appears in `modification.triggers` for auditability but is ignored when selecting intensity/volume adjustments. The independent trigger controls the adjustment (e.g. sleep + ACWR reduces volume only; HRV + ACWR reduces intensity only)
+- `readiness_decision.signals.acwr.role` changes from `"advisory"` to `"corroborative"` only while activated and adds `corroborated_by`; otherwise it remains `status: "context", role: "advisory"`
 
 **v11.50 — Intervals.icu-aligned ACWR + advisory-only readiness role:**
 - Pairs with `sync.py` v3.118, applied on top of the upstream v3.117 release so the v3.113–v3.117 DFA and readiness fixes remain intact
@@ -1014,7 +1020,7 @@ When validating datasets, cross-check computed fatigue and load ratios against v
 
 | **Metric**                   | **Valid Range**                                    | **Flag (Early Warning)**           | **Alarm (Action Needed)**           | **Notes**                                                           |
 |------------------------------|----------------------------------------------------|------------------------------------|-------------------------------------|---------------------------------------------------------------------|
-| ACWR (`ATL / CTL`)           | No validated Go/No range                           | —                                 | —                                   | Advisory context only. Descriptive bands: <0.8 recent load below chronic; 0.8–<1.3 near chronic; 1.3–<1.5 above chronic; ≥1.5 well above chronic. Never enters readiness counts or independently changes training. |
+| ACWR (`ATL / CTL`)           | No validated Go/No range                           | ≥1.3 only when another readiness signal is amber/red | —                                   | Corroborative P2 amber only. Descriptive bands remain unchanged; ACWR never becomes red or independently changes training. |
 | Monotony                     | < 2.5                                              | At 2.3                             | At 2.5                              | See Monotony Deload Context below                                   |
 | Strain                       | < 3500                                             | —                                  | > 3500                              | Cumulative stress                                                   |
 | Recovery Index (RI)          | ≥ 0.8 good / 0.6–0.79 moderate / < 0.6 deload      | < 0.7 for 2+ days                 | < 0.7 for 3+ days → deload review; < 0.6 → immediate deload | Readiness indicator. Single-day dips 0.6–0.79 are context, not amber. |
@@ -1125,13 +1131,13 @@ AI systems must only consider caloric-reduction or weight-optimization phases du
 | RHR | At or below baseline | ↑ 3–4 bpm | ↑ ≥5 bpm |
 | Sleep | ≥ 7h | 5–7h | < 5h |
 | TSB | > phase threshold (default -15) | Between threshold and -30 | < -30 |
-| ACWR | `context` at every available value; excluded from counts | — | — |
+| ACWR | `context` when <1.3 or when no independent amber/red exists | ≥1.3 only when at least one non-ACWR signal is already amber/red | Never |
 | RI | ≥ 0.7, or single-day 0.6–0.69 | < 0.7 for 2+ consecutive days | < 0.6 |
 
-Missing signals are classified as `unavailable` and excluded from amber/red counts. ACWR is classified as `context`, also excluded from all readiness counts.
+Missing signals are classified as `unavailable` and excluded from amber/red counts. ACWR remains `context` and excluded unless its corroboration gate activates; it then contributes exactly one amber and never a red.
 
 **Heuristic notes (transparency):**
-- **All ACWR values are intentionally excluded from readiness ambers/reds.** ACWR describes the balance between recent exponentially weighted load (ATL) and chronic exponentially weighted load (CTL). A low value can reflect taper, travel, illness, or an off-rhythm week; a high value can reflect a planned block or a genuine spike. Neither establishes current physiological readiness. The value and neutral `acwr_interpretation` remain available for narrative context and multi-signal corroboration only.
+- **ACWR is a corroborative amber, never a primary adverse signal.** ACWR describes the balance between recent exponentially weighted load (ATL) and chronic exponentially weighted load (CTL). A low value can reflect taper, travel, illness, or an off-rhythm week; a high value can reflect a planned block or a genuine spike. Therefore ACWR ≥1.3 remains context when isolated, becomes one amber only after an independent amber/red exists, and never becomes red even at ≥1.5.
 - **RI amber requires 2-day persistence** (`ri < 0.7` today AND yesterday) to filter single-night noise from a composite signal built on HRV and RHR. Single-day dips in the 0.6–0.7 band remain visible via the reported value but do not trigger an amber. Red (`ri < 0.6`) still fires on any single day — deload review is warranted regardless of persistence.
 
 **Feel/RPE Override:**
@@ -1166,7 +1172,8 @@ When recommendation is `modify`, the output includes trigger categories and adju
 | Sleep-only | preserve | reduce | — |
 | Autonomic (HRV/RHR/RI) | reduce | preserve | — |
 | TSB-only | preserve | reduce | — |
-| ACWR-only | preserve | preserve | — (context only; no automatic modification) |
+| ACWR-only | preserve | preserve | — (cannot produce Modify) |
+| ACWR + one actionable trigger | Follow the actionable trigger | Follow the actionable trigger | — |
 | Combined (2+) | reduce | reduce | — |
 
 **Race week interaction:** Readiness can escalate (Go → Modify → Skip) during race week but cannot loosen race protocol targets. When `race_week_defers: true`, modification guidance defers to the race-week protocol's day-by-day targets. The race protocol sets the ceiling; readiness can only push it down.
@@ -2141,7 +2148,7 @@ Values:
 - A single `positive` or `negative` reading is an observation to surface, not a trigger. Cross-reference Environmental Conditions Protocol (heat tier, altitude), recent sleep, and position in the training block before assigning meaning
 - A repeated `negative` pattern across consecutive sessions — especially at stable or rising IF — is a stronger under-recovery signal and should inform the Interpretation section of the report and any conversation about near-term load
 - `positive` readings during Race-Week Protocol or directly after a deload are expected; during build weeks they are a fitness tell worth naming
-- The field does NOT modify the readiness P0–P3 decision. That ladder counts five readiness signals (HRV, RHR, sleep, TSB, RI); ACWR is carried separately as advisory context
+- The field does NOT modify the readiness P0–P3 decision. That ladder is driven by HRV, RHR, sleep, TSB, and RI; ACWR can add one corroborative P2 amber only after one of those independent signals is already amber/red
 
 Report rendering: the post-workout report template emits `Effort response: [value]` on the per-session block, paired with a newly-rendered `IF: [X.XX]` line so the signal is verifiable at a glance. Null cases omit the line per the same convention used for Feel, RPE, and HRRc.
 
@@ -2151,7 +2158,7 @@ Testing Protocol constraints are absolute:
 
 1. **Does NOT mandate testing.** The AI suggests; the athlete decides. An athlete who never formally tests but has continuous data coverage remains correctly served.
 2. **Does NOT auto-update dossier zones.** A completed test produces a result; the athlete decides whether to update dossier thresholds. The AI surfaces the number and the delta from current dossier, nothing more.
-3. **Does NOT enter the readiness P0–P3 ladder.** A suggested-or-scheduled test does not modify the readiness decision. The decision counts HRV, RHR, sleep, TSB, and RI; ACWR remains advisory context only.
+3. **Does NOT enter the readiness P0–P3 ladder.** A suggested-or-scheduled test does not modify the readiness decision. The decision is driven by HRV, RHR, sleep, TSB, and RI; ACWR may only add the conditional corroborative amber defined in Readiness Decision.
 4. **Does NOT override continuous data.** When continuous signals and a recent test disagree, investigate first (pacing? environment? fueling?). A single test is one data point; the continuous picture accumulates many.
 5. **Does NOT prescribe running or SkiErg tests.** Running equivalents deferred. SkiErg and rowing tests out of current scope.
 
@@ -3133,14 +3140,14 @@ This subsection defines the formal self-validation and audit metadata structure 
 | `phase_detection.phase_duration_weeks` | number | Consecutive weeks classified as current phase.                                 |
 | `phase_detection.dossier_declared` | string/null | Phase declared in athlete dossier (optional input).                            |
 | `phase_detection.dossier_agreement` | boolean/null | Whether detected phase matches dossier declaration.                           |
-| `derived_metrics.acwr`         | number/null | Intervals.icu-aligned `ATL / CTL`, rounded to 2 decimals. Uses platform-provided exponentially weighted fatigue/fitness values; descriptive context only. |
+| `derived_metrics.acwr`         | number/null | Intervals.icu-aligned `ATL / CTL`, rounded to 2 decimals. Uses platform-provided exponentially weighted fatigue/fitness values; eligible only for the conditional corroborative P2 amber rule. |
 | `derived_metrics.acwr_method`  | string   | `"intervals_atl_ctl"`. Explicit provenance tag preventing consumers from assuming a rolling 7d/28d calculation. |
 | `derived_metrics.acwr_interpretation` | string/null | Neutral label: `recent_load_below_chronic`, `recent_load_near_chronic`, `recent_load_above_chronic`, or `recent_load_well_above_chronic`. No injury-risk semantics. |
 | `readiness_decision`           | object   | Pre-computed go/modify/skip decision (v3.72+). Top-level, alongside `alerts`. |
 | `readiness_decision.recommendation` | string | "go" / "modify" / "skip" — baseline recommendation for pre-workout reports. |
 | `readiness_decision.priority`  | number   | 0 (safety stop), 1 (acute overload), 2 (accumulated fatigue), 3 (green light). |
-| `readiness_decision.signals`   | object   | Per-signal status objects (hrv, rhr, sleep, tsb, acwr, ri). Readiness signals use `green`/`amber`/`red`/`unavailable`; available ACWR uses `context` with `role: "advisory"` and is excluded from counts. |
-| `readiness_decision.signal_summary` | object | Pre-counted tallies: `green`, `amber`, `red`, `unavailable`, `context`. The context count is excluded from decision thresholds. |
+| `readiness_decision.signals`   | object   | Per-signal status objects (hrv, rhr, sleep, tsb, acwr, ri). Available ACWR normally uses `status: "context", role: "advisory"`; at ≥1.3 with an independent amber/red it uses `status: "amber", role: "corroborative"` plus `corroborated_by`. ACWR never uses `red`. |
+| `readiness_decision.signal_summary` | object | Pre-counted tallies: `green`, `amber`, `red`, `unavailable`, `context`. ACWR moves from `context` to `amber` only while its corroboration gate is active. |
 | `readiness_decision.phase_context` | object | `phase`, `phase_week`, `amber_threshold`, `modifier_applied` — shows which phase rule shifted thresholds. |
 | `readiness_decision.race_week_defers` | boolean | When true, modification guidance defers to race-week protocol day-by-day targets. |
 | `readiness_decision.modification` | object/null | When recommendation is "modify": `triggers` (signal names), `suggested_adjustments` (`intensity`, `volume`, `cap_zone`). Null for "go" and "skip". |
