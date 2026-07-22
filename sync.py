@@ -4,6 +4,11 @@ Intervals.icu → GitHub/Local JSON Export
 Exports training data for LLM access.
 Supports both automated GitHub sync and manual local export.
 
+Version 3.120 - Athlete-local calendar dates (2026-07-22): date boundaries used
+  for wellness/activity/event API ranges, rolling windows, phase weeks, FTP history,
+  and readiness now use Asia/Seoul rather than the GitHub Actions runner's UTC date.
+  Absolute generated_at / last_updated timestamps remain unchanged.
+
 Version 3.119 - Corroborative ACWR amber (2026-07-15): ACWR remains context when
   it is the only adverse load signal. At ACWR >= 1.3 it becomes one P2 amber
   vote only when at least one independent readiness signal is already amber or
@@ -309,6 +314,7 @@ import json
 import os
 import argparse
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import Dict, List, Optional, Tuple
 import base64
 import math
@@ -332,7 +338,7 @@ class IntervalsSync:
     HISTORY_FILE = "history.json"
     UPSTREAM_REPO = "CrankAddict/section-11"
     CHANGELOG_FILE = "changelog.json"
-    VERSION = "3.119"
+    VERSION = "3.120"
     INTERVALS_FILE = "intervals.json"
     ROUTES_FILE = "routes.json"
 
@@ -402,6 +408,13 @@ class IntervalsSync:
     def _is_indoor_cycling(cls, activity_type: str) -> bool:
         """True when activity_type represents an indoor cycling session."""
         return activity_type in cls.INDOOR_CYCLING_TYPES
+
+    ATHLETE_TIMEZONE = ZoneInfo("Asia/Seoul")
+
+    @classmethod
+    def _local_now(cls) -> datetime:
+        """Current athlete-local time for calendar-date boundaries and API date ranges."""
+        return datetime.now(cls.ATHLETE_TIMEZONE)
 
     # Training week start day (Python weekday: Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6)
     # Default Monday (ISO). Override via .sync_config.json, WEEK_START env var, or --week-start CLI arg.
@@ -1330,7 +1343,7 @@ class IntervalsSync:
         
         Returns set of activity IDs that have interval data (for has_intervals flag).
         """
-        now = datetime.now()
+        now = self._local_now()
         retention_cutoff = (now - timedelta(days=self.INTERVAL_RETENTION_DAYS)).strftime("%Y-%m-%d")
         
         # Load existing cache
@@ -2219,7 +2232,7 @@ class IntervalsSync:
         - sportInfo with eFTP, W', P-max (accurate live estimates)
         - VO2max, sleep quality/hours, etc.
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = self._local_now().strftime("%Y-%m-%d")
         try:
             data = self._intervals_get(f"wellness/{today}")
             return data
@@ -2301,7 +2314,7 @@ class IntervalsSync:
         Tracks indoor and outdoor FTP separately.
         Only adds entry if FTP changed from most recent entry.
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = self._local_now().strftime("%Y-%m-%d")
         
         # Ensure structure exists
         if "indoor" not in history:
@@ -2363,7 +2376,7 @@ class IntervalsSync:
             return None, None
         
         # Find FTP from ~8 weeks ago (56 days, with ±7 day tolerance)
-        target_date = datetime.now() - timedelta(days=56)
+        target_date = self._local_now() - timedelta(days=56)
         earliest_acceptable = target_date - timedelta(days=7)
         latest_acceptable = target_date + timedelta(days=7)
         
@@ -2397,7 +2410,7 @@ class IntervalsSync:
             sorted_dates = sorted(ftp_history.keys())
             if sorted_dates:
                 oldest_date = datetime.strptime(sorted_dates[0], "%Y-%m-%d")
-                days_of_history = (datetime.now() - oldest_date).days
+                days_of_history = (self._local_now() - oldest_date).days
                 print(f"  Benchmark Index ({ftp_type}) unavailable: only {days_of_history} days of history (need ~56)")
         
         return None, None
@@ -2410,7 +2423,7 @@ class IntervalsSync:
             return None
         try:
             d = datetime.strptime(date_str, "%Y-%m-%d")
-            today = datetime.now()
+            today = self._local_now()
             return today.year - d.year - ((today.month, today.day) < (d.month, d.day))
         except (ValueError, TypeError):
             return None
@@ -2427,10 +2440,11 @@ class IntervalsSync:
         """Collect all training data for LLM analysis"""
         # Extended range for 28-day baselines and capability metrics
         days_for_extended_metrics = 28
-        oldest_extended = (datetime.now() - timedelta(days=days_for_extended_metrics - 1)).strftime("%Y-%m-%d")
-        oldest_display = (datetime.now() - timedelta(days=days_back - 1)).strftime("%Y-%m-%d")
-        newest = datetime.now().strftime("%Y-%m-%d")
-        today = datetime.now().strftime("%Y-%m-%d")
+        local_now = self._local_now()
+        oldest_extended = (local_now - timedelta(days=days_for_extended_metrics - 1)).strftime("%Y-%m-%d")
+        oldest_display = (local_now - timedelta(days=days_back - 1)).strftime("%Y-%m-%d")
+        newest = local_now.strftime("%Y-%m-%d")
+        today = self._local_now().strftime("%Y-%m-%d")
         
         print("Fetching athlete data...")
         athlete = self._intervals_get("")
@@ -2515,7 +2529,7 @@ class IntervalsSync:
         # Fetch yesterday's wellness for decay fallback
         print("Fetching fitness metrics...")
         try:
-            yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+            yesterday = (local_now - timedelta(days=1)).strftime("%Y-%m-%d")
             yesterday_wellness = self._intervals_get("wellness", {"oldest": yesterday, "newest": yesterday})
             yesterday_data = yesterday_wellness[0] if yesterday_wellness else {}
             
@@ -2541,14 +2555,14 @@ class IntervalsSync:
         
         # Fetch planned workouts (EXTENDED: include past 7 days for Consistency Index, 90 days ahead for race calendar)
         print("Fetching planned workouts (past + future for Consistency Index + race calendar)...")
-        oldest_events = (datetime.now() - timedelta(days=days_back - 1)).strftime("%Y-%m-%d")
-        newest_ahead = (datetime.now() + timedelta(days=90)).strftime("%Y-%m-%d")
+        oldest_events = (local_now - timedelta(days=days_back - 1)).strftime("%Y-%m-%d")
+        newest_ahead = (local_now + timedelta(days=90)).strftime("%Y-%m-%d")
         events = self._intervals_get("events", {"oldest": oldest_events, "newest": newest_ahead, "resolve": "true"})
         
         # Split events into past (for consistency), near future (for planned workouts display), and all future (for race calendar)
         past_events = [e for e in events if e.get("start_date_local", "")[:10] <= today]
         future_events = [e for e in events if e.get("start_date_local", "")[:10] >= today]
-        near_future_events = [e for e in future_events if e.get("start_date_local", "")[:10] <= (datetime.now() + timedelta(days=42)).strftime("%Y-%m-%d")]
+        near_future_events = [e for e in future_events if e.get("start_date_local", "")[:10] <= (local_now + timedelta(days=42)).strftime("%Y-%m-%d")]
         
         # Smart fitness metrics: same logic for CTL, ATL, TSB, and ramp rate
         # API values include planned workouts → inflated if not yet completed
@@ -2619,9 +2633,9 @@ class IntervalsSync:
         pc_dates = None
         try:
             pc_end1 = today
-            pc_start1 = (datetime.now() - timedelta(days=27)).strftime("%Y-%m-%d")
-            pc_end2 = (datetime.now() - timedelta(days=28)).strftime("%Y-%m-%d")
-            pc_start2 = (datetime.now() - timedelta(days=55)).strftime("%Y-%m-%d")
+            pc_start1 = (local_now - timedelta(days=27)).strftime("%Y-%m-%d")
+            pc_end2 = (local_now - timedelta(days=28)).strftime("%Y-%m-%d")
+            pc_start2 = (local_now - timedelta(days=55)).strftime("%Y-%m-%d")
             pc_dates = (pc_start1, pc_end1, pc_start2, pc_end2)
             power_curve_data = self._intervals_get("power-curves", {
                 "type": "Ride",
@@ -2646,7 +2660,7 @@ class IntervalsSync:
         print("Fetching sustainability curves...")
         sustainability_curves = {}
         sus_end = today
-        sus_start = (datetime.now() - timedelta(days=self.SUSTAINABILITY_WINDOW_DAYS - 1)).strftime("%Y-%m-%d")
+        sus_start = (local_now - timedelta(days=self.SUSTAINABILITY_WINDOW_DAYS - 1)).strftime("%Y-%m-%d")
         sus_window = (sus_start, sus_end)
         
         # Determine which sport families have recent activity data
@@ -2992,7 +3006,7 @@ class IntervalsSync:
         """
         BLOCK_WINDOW_DAYS = 28
         BOUNDARY_WIDTH_DAYS = 4
-        today = datetime.now().date()
+        today = self._local_now().date()
         block: Dict = {}
         display: Dict = {}
 
@@ -3396,14 +3410,14 @@ class IntervalsSync:
         )
         
         # === PHASE DETECTION v2 (dual-stream) ===
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = self._local_now().strftime("%Y-%m-%d")
         
         # === LIVE WEEKLY ROWS FROM activities_28d (v3.94) ===
         # Replaces v3.89 single-week overlay. Computes all 4 weekly rows
         # (TSS, primary_sport_tss, hard_days) live from activities_28d,
         # eliminating the entire class of stale-row bugs. CTL/ATL enriched
         # from history.json where available (stable background data).
-        now_dt = datetime.now()
+        now_dt = self._local_now()
         days_since_ws = (now_dt.weekday() - self.week_start_day) % 7
         current_ws_dt = now_dt - timedelta(days=days_since_ws)
         
@@ -3802,7 +3816,7 @@ class IntervalsSync:
         # Create array for last N days (including days with 0 TSS)
         result = []
         for i in range(days - 1, -1, -1):
-            date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+            date = (self._local_now() - timedelta(days=i)).strftime("%Y-%m-%d")
             result.append(daily_tss.get(date, 0))
         
         return result
@@ -3832,7 +3846,7 @@ class IntervalsSync:
         for sport_family, daily_dict in sport_daily_tss.items():
             daily_array = []
             for i in range(days - 1, -1, -1):
-                date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+                date = (self._local_now() - timedelta(days=i)).strftime("%Y-%m-%d")
                 daily_array.append(daily_dict.get(date, 0))
             result[sport_family] = daily_array
 
@@ -5070,7 +5084,7 @@ class IntervalsSync:
             if all_dates:
                 most_recent = max(all_dates)
                 most_recent_date = datetime.strptime(most_recent, "%Y-%m-%d")
-                ftp_staleness_days = (datetime.now() - most_recent_date).days
+                ftp_staleness_days = (self._local_now().replace(tzinfo=None) - most_recent_date).days
         except Exception:
             pass
         
@@ -5355,7 +5369,7 @@ class IntervalsSync:
         needs to see its own row at weekly_rows[-1]).
         """
         if today is None:
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = self._local_now().strftime("%Y-%m-%d")
         
         reason_codes = []
         
@@ -6055,7 +6069,7 @@ class IntervalsSync:
         Determine seasonal context based on current month.
         Assumes Northern Hemisphere cycling calendar.
         """
-        month = datetime.now().month
+        month = self._local_now().month
         
         if month in [11, 12]:
             return "Off-season / Transition"
@@ -7634,7 +7648,7 @@ class IntervalsSync:
                     break
         
         if cycling_settings:
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = self._local_now().strftime("%Y-%m-%d")
             outdoor_ftp = cycling_settings.get("ftp")
             indoor_ftp = cycling_settings.get("indoor_ftp")
             
@@ -7917,7 +7931,7 @@ class IntervalsSync:
             for e in (self._intervals_data or {}).get("activities", [])
             if e.get("activity_id") is not None
         }
-        chat_notes_cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        chat_notes_cutoff = (self._local_now() - timedelta(days=7)).strftime("%Y-%m-%d")
         formatted = []
         for i, act in enumerate(activities):
             avg_power = (act.get("average_watts") or act.get("avg_watts") or 
@@ -8653,7 +8667,7 @@ class IntervalsSync:
         Sets self._summary_stats with coverage telemetry.
         """
         if today is None:
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = self._local_now().strftime("%Y-%m-%d")
         
         day7_cutoff = (datetime.strptime(today, "%Y-%m-%d") + timedelta(days=7)).strftime("%Y-%m-%d")
         
@@ -9195,7 +9209,7 @@ class IntervalsSync:
             raise ValueError("GitHub token and repo required for publishing")
         
         if not commit_message:
-            commit_message = f"Update training data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            commit_message = f"Update training data - {self._local_now().strftime('%Y-%m-%d %H:%M:%S')}"
         
         headers = {
             "Authorization": f"token {self.github_token}",
@@ -10029,7 +10043,7 @@ def main():
         if github_token and github_repo and not args.output:
             print("\n📤 Publishing history.json to GitHub...")
             sync.publish_to_github(history, filepath="history.json",
-                                   commit_message=f"Generate history.json - {datetime.now().strftime('%Y-%m-%d')}")
+                                   commit_message=f"Generate history.json - {self._local_now().strftime('%Y-%m-%d')}")
             print("   ✅ history.json pushed to GitHub")
         return
     
@@ -10052,7 +10066,7 @@ def main():
                 print(f"   ✅ history.json saved to {history_path}")
             else:
                 sync.publish_to_github(history, filepath="history.json",
-                                       commit_message=f"Auto-generate history.json - {datetime.now().strftime('%Y-%m-%d')}")
+                                       commit_message=f"Auto-generate history.json - {self._local_now().strftime('%Y-%m-%d')}")
                 print("   ✅ history.json auto-generated and pushed to GitHub")
         except Exception as e:
             print(f"   ⚠️ History generation failed (non-critical): {e}")
@@ -10148,7 +10162,7 @@ def main():
                 json.dump(intervals_data, f, indent=2, default=str)
             try:
                 sync.publish_to_github(intervals_data, filepath="intervals.json",
-                                       commit_message=f"Update intervals.json - {datetime.now().strftime('%Y-%m-%d')}")
+                                       commit_message=f"Update intervals.json - {self._local_now().strftime('%Y-%m-%d')}")
                 print(f"   📊 intervals.json pushed ({len(intervals_data['activities'])} activities)")
             except Exception as e:
                 print(f"   ⚠️ intervals.json push failed (non-critical): {e}")
@@ -10162,7 +10176,7 @@ def main():
                 json.dump(routes_data, f, indent=2, default=str)
             try:
                 sync.publish_to_github(routes_data, filepath="routes.json",
-                                       commit_message=f"Update routes.json - {datetime.now().strftime('%Y-%m-%d')}")
+                                       commit_message=f"Update routes.json - {self._local_now().strftime('%Y-%m-%d')}")
                 print(f"   🗺️  routes.json pushed ({len(routes_data.get('events', []))} event(s))")
             except Exception as e:
                 print(f"   ⚠️ routes.json push failed (non-critical): {e}")
