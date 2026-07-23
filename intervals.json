@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-23T20:29:57.056375+09:00",
+  "generated_at": "2026-07-23T21:27:26.519313+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
@@ -494,6 +494,28 @@
           "zone": 2,
           "training_load": 43.123455,
           "decoupling": -1.8962156
+        }
+      ]
+    },
+    {
+      "activity_id": "i168420216",
+      "date": "2026-07-23",
+      "start_datetime": "2026-07-23T19:39:16",
+      "type": "VirtualRide",
+      "name": "Endurance 105min",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 6094,
+          "avg_power": 99,
+          "max_power": 152,
+          "avg_hr": 123,
+          "max_hr": 138,
+          "avg_cadence": 71.75156,
+          "zone": 2,
+          "training_load": 70.78206,
+          "decoupling": -1.3562868
         }
       ]
     }
