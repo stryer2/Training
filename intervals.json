@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26T10:12:31.603225+09:00",
+  "generated_at": "2026-07-26T11:19:20.389415+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
@@ -492,6 +492,28 @@
           "zone": 1,
           "training_load": 3.5,
           "decoupling": 5.204137
+        }
+      ]
+    },
+    {
+      "activity_id": "i169231443",
+      "date": "2026-07-26",
+      "start_datetime": "2026-07-26T07:57:59",
+      "type": "Ride",
+      "name": "Z2 Endurance 2h (outdoor, heat-adjusted)",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 9542,
+          "avg_power": 70,
+          "max_power": 342,
+          "avg_hr": 138,
+          "max_hr": 167,
+          "avg_cadence": 79.228386,
+          "zone": 1,
+          "training_load": 67.362076,
+          "decoupling": 2.4064412
         }
       ]
     }
