@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T20:31:37.912493+09:00",
+  "generated_at": "2026-07-30T22:12:45.184098+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
@@ -466,6 +466,28 @@
           "zone": 1,
           "training_load": 3.6863906,
           "decoupling": -7.378665
+        }
+      ]
+    },
+    {
+      "activity_id": "i170753937",
+      "date": "2026-07-30",
+      "start_datetime": "2026-07-30T20:01:57",
+      "type": "VirtualRide",
+      "name": "Z2 + Cadence Drills (60min)",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 3825,
+          "avg_power": 103,
+          "max_power": 150,
+          "avg_hr": 140,
+          "max_hr": 154,
+          "avg_cadence": 81.310585,
+          "zone": 2,
+          "training_load": 46.899822,
+          "decoupling": 4.5768137
         }
       ]
     }
