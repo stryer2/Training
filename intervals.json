@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T18:48:23.118700+09:00",
+  "generated_at": "2026-08-04T20:54:15.060841+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
@@ -666,6 +666,28 @@
           "zone": 1,
           "training_load": 12.929622,
           "decoupling": -4.738977
+        }
+      ]
+    },
+    {
+      "activity_id": "i172342696",
+      "date": "2026-08-04",
+      "start_datetime": "2026-08-04T19:48:14",
+      "type": "VirtualRide",
+      "name": "Z2 Lower (60min, easy)",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 3653,
+          "avg_power": 92,
+          "max_power": 126,
+          "avg_hr": 134,
+          "max_hr": 150,
+          "avg_cadence": 80.04083,
+          "zone": 2,
+          "training_load": 34.145622,
+          "decoupling": -0.7343555
         }
       ]
     }
