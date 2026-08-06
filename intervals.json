@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-06T20:56:04.126808+09:00",
+  "generated_at": "2026-08-06T22:43:40.333450+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
@@ -637,6 +637,28 @@
           "zone": 1,
           "training_load": 5.9954443,
           "decoupling": 8.170037
+        }
+      ]
+    },
+    {
+      "activity_id": "i173053503",
+      "date": "2026-08-06",
+      "start_datetime": "2026-08-06T20:19:00",
+      "type": "VirtualRide",
+      "name": "Z2 (60min, \uc870\uac74\ubd80)",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 3626,
+          "avg_power": 95,
+          "max_power": 145,
+          "avg_hr": 131,
+          "max_hr": 146,
+          "avg_cadence": 82.1401,
+          "zone": 2,
+          "training_load": 35.97151,
+          "decoupling": -0.15141203
         }
       ]
     }
