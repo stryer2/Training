@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-26T21:26:45.286791+09:00",
+  "generated_at": "2026-08-26T22:31:36.715747+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
@@ -642,6 +642,28 @@
           "avg_cadence": 85.86233,
           "zone": 1,
           "training_load": 20.683298
+        }
+      ]
+    },
+    {
+      "activity_id": "i180020003",
+      "date": "2026-08-26",
+      "start_datetime": "2026-08-26T20:15:15",
+      "type": "VirtualRide",
+      "name": "\uc2e4\ub0b4 Z2 90\ubd84 (\uacc4\ub2e8\uc2dd) \u2605",
+      "interval_summary": null,
+      "intervals": [
+        {
+          "type": "RECOVERY",
+          "duration_secs": 5416,
+          "avg_power": 101,
+          "max_power": 169,
+          "avg_hr": 129,
+          "max_hr": 145,
+          "avg_cadence": 80.35709,
+          "zone": 2,
+          "training_load": 60.782696,
+          "decoupling": -3.4463108
         }
       ]
     }
