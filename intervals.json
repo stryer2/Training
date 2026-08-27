@@ -1,32 +1,10 @@
 {
-  "generated_at": "2026-08-27T14:35:48.557985+09:00",
+  "generated_at": "2026-08-28T01:47:38.569115+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
   "retention_days": 14,
   "activities": [
-    {
-      "activity_id": "i175441082",
-      "date": "2026-08-13",
-      "start_datetime": "2026-08-13T20:26:07",
-      "type": "Ride",
-      "name": "Z2 \uc2e4\ub0b4 (50min, easy)",
-      "interval_summary": null,
-      "intervals": [
-        {
-          "type": "RECOVERY",
-          "duration_secs": 2977,
-          "avg_power": 82,
-          "max_power": 416,
-          "avg_hr": 130,
-          "max_hr": 163,
-          "avg_cadence": 79.29214,
-          "zone": 1,
-          "training_load": 29.461592,
-          "decoupling": -6.669198
-        }
-      ]
-    },
     {
       "activity_id": "i175932971",
       "date": "2026-08-15",
