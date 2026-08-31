@@ -1,32 +1,10 @@
 {
-  "generated_at": "2026-08-31T22:39:47.608460+09:00",
+  "generated_at": "2026-09-01T04:39:14.060473+09:00",
   "version": "3.120",
   "script_hash": "78bcb3a8f701",
   "scan_hours": 72,
   "retention_days": 14,
   "activities": [
-    {
-      "activity_id": "i176594186",
-      "date": "2026-08-17",
-      "start_datetime": "2026-08-17T07:42:57",
-      "type": "Ride",
-      "name": "Z2 \uc2e4\ub0b4 (60min) \u2014 \uc6d4\uc694\uc77c \ub300\uccb4",
-      "interval_summary": null,
-      "intervals": [
-        {
-          "type": "RECOVERY",
-          "duration_secs": 4196,
-          "avg_power": 82,
-          "max_power": 369,
-          "avg_hr": 125,
-          "max_hr": 143,
-          "avg_cadence": 83.11734,
-          "zone": 1,
-          "training_load": 37.362846,
-          "decoupling": -0.7875389
-        }
-      ]
-    },
     {
       "activity_id": "i177143257",
       "date": "2026-08-18",
