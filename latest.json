@@ -70,7 +70,7 @@
   },
   "metadata": {
     "athlete_id": "REDACTED",
-    "last_updated": "2026-11-27T03:51:32.040969",
+    "last_updated": "2026-11-27T13:17:04.096037",
     "data_range_days": 7,
     "extended_range_days": 28,
     "version": "3.120"
@@ -113,9 +113,9 @@
       },
       "rhr": {
         "status": "amber",
-        "value": 64,
-        "baseline_7d": 60.1,
-        "delta_bpm": 3.9
+        "value": 63,
+        "baseline_7d": 60,
+        "delta_bpm": 3
       },
       "sleep": {
         "status": "amber",
@@ -130,7 +130,7 @@
       },
       "ri": {
         "status": "green",
-        "value": 0.9,
+        "value": 0.91,
         "value_yesterday": 0.92
       },
       "tsb": {
@@ -229,7 +229,7 @@
           "unit": "kg"
         }
       },
-      "resting_hr": 64,
+      "resting_hr": 63,
       "hrv": 34.0,
       "sleep_quality": 3,
       "sleep_hours": 5.37,
@@ -263,14 +263,14 @@
     }
   },
   "derived_metrics": {
-    "recovery_index": 0.9,
+    "recovery_index": 0.91,
     "recovery_index_yesterday": 0.92,
     "hrv_baseline_7d": 35.4,
-    "rhr_baseline_7d": 60.1,
+    "rhr_baseline_7d": 60,
     "hrv_baseline_28d": 36.9,
     "rhr_baseline_28d": 59.8,
     "latest_hrv": 34.0,
-    "latest_rhr": 64,
+    "latest_rhr": 63,
     "acwr": 0.0,
     "acwr_method": "intervals_atl_ctl",
     "acwr_interpretation": "recent_load_below_chronic",
@@ -465,7 +465,7 @@
     "p_max": 482,
     "power_model_source": "wellness.sportInfo",
     "vo2max": null,
-    "calculation_timestamp": "2026-11-27T03:51:32.040067",
+    "calculation_timestamp": "2026-11-27T13:17:04.094865",
     "data_quality": {
       "hrv_data_points": 7,
       "rhr_data_points": 7,
@@ -738,7 +738,7 @@
       "display": {
         "weight": null
       },
-      "resting_hr": 64,
+      "resting_hr": 63,
       "hrv_rmssd": 34.0,
       "hrv_sdnn": null,
       "sleep_hours": 5.37,
@@ -790,7 +790,7 @@
     "total_tss": 0,
     "activities_count": 0,
     "avg_hrv": 35.4,
-    "avg_resting_hr": 60.1
+    "avg_resting_hr": 60.0
   },
   "race_calendar": {
     "next_race": null,
